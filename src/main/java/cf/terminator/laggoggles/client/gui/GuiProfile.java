@@ -1,7 +1,6 @@
 package cf.terminator.laggoggles.client.gui;
 
-import cf.terminator.laggoggles.client.ClientProxy;
-import cf.terminator.laggoggles.client.ServerDataPacketHandler;
+import cf.terminator.laggoggles.CommonProxy;
 import cf.terminator.laggoggles.client.gui.buttons.DonateButton;
 import cf.terminator.laggoggles.client.gui.buttons.DownloadButton;
 import cf.terminator.laggoggles.client.gui.buttons.OptionsButton;
@@ -9,21 +8,24 @@ import cf.terminator.laggoggles.client.gui.buttons.ProfileButton;
 import cf.terminator.laggoggles.packet.CPacketRequestResult;
 import cf.terminator.laggoggles.packet.CPacketRequestScan;
 import cf.terminator.laggoggles.packet.SPacketMessage;
+import cf.terminator.laggoggles.packet.SPacketScanResult;
+import cf.terminator.laggoggles.packet.SPacketServerData;
 import cf.terminator.laggoggles.profiler.ProfileResult;
 import cf.terminator.laggoggles.profiler.ScanType;
 import cf.terminator.laggoggles.util.Perms;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiLabel;
-import net.minecraft.client.gui.GuiScreen;
-import org.lwjgl.input.Mouse;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.event.ClickEvent;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 import static cf.terminator.laggoggles.profiler.ProfileManager.LAST_PROFILE_RESULT;
 
-public class GuiProfile extends GuiScreen {
+public class GuiProfile extends Screen {
 
     private static final int BUTTON_START_PROFILE_ID = 0;
     private static final int BUTTON_SHOW_TOGGLE      = 1;
@@ -36,38 +38,38 @@ public class GuiProfile extends GuiScreen {
     public static String PROFILING_PLAYER = null;
     public static long PROFILE_END_TIME = 0L;
 
-    public static SPacketMessage MESSAGE = null;
+    public static String MESSAGE = null;
     public static long MESSAGE_END_TIME = 0L;
 
 
     private ProfileButton startProfile;
     private DownloadButton downloadButton;
-    private GuiButton optionsButton;
+    private Button optionsButton;
     private boolean initialized = false;
-    public int seconds = Math.min(30, ServerDataPacketHandler.MAX_SECONDS);
+    public int seconds = Math.min(30, SPacketServerData.MAX_SECONDS);
 
     public GuiProfile(){
-        super();
+        super(new StringTextComponent("Profiling"));
     }
 
     public static void update(){
         if(isThisGuiOpen() == false){
             return;
         }
-        Minecraft.getMinecraft().displayGuiScreen(new GuiProfile());
+        Minecraft.getInstance().displayGuiScreen(new GuiProfile());
     }
 
     public static void open(){
-        Minecraft.getMinecraft().displayGuiScreen(new GuiProfile());
+        Minecraft.getInstance().displayGuiScreen(new GuiProfile());
     }
 
     private static boolean isThisGuiOpen(){
-        return Minecraft.getMinecraft().currentScreen != null && (Minecraft.getMinecraft().currentScreen instanceof GuiProfile == true);
+        return Minecraft.getInstance().currentScreen != null && (Minecraft.getInstance().currentScreen instanceof GuiProfile == true);
     }
 
     @Override
-    public void initGui(){
-        super.initGui();
+    public void init(){
+        super.init();
 
         buttonList = new ArrayList<>();
         labelList = new ArrayList<>();
@@ -77,11 +79,12 @@ public class GuiProfile extends GuiScreen {
 
         boolean profileLoaded = LAST_PROFILE_RESULT.get() != null;
 
-        startProfile = new ProfileButton(BUTTON_START_PROFILE_ID, centerX - 100, centerY - 25, "Profile for " + seconds + " seconds");
+        startProfile = new ProfileButton(centerX - 100, centerY - 25, "Profile for " + seconds + " seconds");
         downloadButton = new DownloadButton(this, BUTTON_DOWNLOAD, centerX + 80, centerY - 25);
         optionsButton = new OptionsButton(BUTTON_OPTIONS, centerX - 100, centerY + 75);
-        GuiButton showToggle  = new GuiButton(BUTTON_SHOW_TOGGLE, centerX - 100, centerY +  5, LagOverlayGui.isShowing() ? "Hide latest scan results" : "Show latest scan results");
-        GuiButton analyzeResults  = new GuiButton(BUTTON_ANALYZE_RESULTS, centerX - 100, centerY +  30, "Analyze results");
+        Button showToggle  = new Button(BUTTON_SHOW_TOGGLE, centerX - 100, centerY +  5, LagOverlayGui.isShowing() ? "Hide latest scan results" :
+                "Show latest scan results");
+        Button analyzeResults  = new Button(BUTTON_ANALYZE_RESULTS, centerX - 100, centerY +  30, "Analyze results");
 
 
         showToggle.enabled = profileLoaded;
@@ -92,7 +95,7 @@ public class GuiProfile extends GuiScreen {
         addButton(analyzeResults);
         addButton(new DonateButton(BUTTON_DONATE, centerX + 10, centerY + 75));
         addButton(optionsButton);
-        GuiLabel scrollHint = new GuiLabel(fontRenderer, LABEL_ID, centerX - 100, centerY - 55, 200, 20, 0xFFFFFF);
+        Label scrollHint = new GuiLabel(fontRenderer, LABEL_ID, centerX - 100, centerY - 55, 200, 20, 0xFFFFFF);
         scrollHint.addLine("Scroll while hovering over the button");
         scrollHint.addLine("to change time time!");
         labelList.add(scrollHint);
@@ -119,18 +122,18 @@ public class GuiProfile extends GuiScreen {
             return;
         }
         if(getSecondsLeftForMessage() >= 0){
-            startProfile.displayString = MESSAGE.message;
-            startProfile.enabled = false;
+            startProfile.setMessage(MESSAGE);
+            startProfile.active = false;
             new Thread(buttonUpdateTask).start();
         }else if(getSecondsLeftForProfiler() >= 0){
-            startProfile.displayString = PROFILING_PLAYER + " > " + getSecondsLeftForProfiler() + " seconds.";
-            startProfile.enabled = false;
+            startProfile.setMessage(PROFILING_PLAYER + " > " + getSecondsLeftForProfiler() + " seconds.");
+            startProfile.active = false;
             new Thread(buttonUpdateTask).start();
         }else{
-            startProfile.enabled = true;
-            startProfile.displayString = "Profile for " + seconds + " seconds";
+            startProfile.active = true;
+            startProfile.setMessage("Profile for " + seconds + " seconds");
         }
-        downloadButton.enabled = ServerDataPacketHandler.PERMISSION.ordinal() >= Perms.Permission.GET.ordinal();
+        downloadButton.active = SPacketServerData.PERMISSION.ordinal() >= Perms.Permission.GET.ordinal();
     }
 
     private static int getSecondsLeftForProfiler(){
@@ -150,17 +153,17 @@ public class GuiProfile extends GuiScreen {
         if(initialized == false){
             return;
         }
-        if(startProfile.isMouseOver() && startProfile.enabled){
+        if(startProfile.isMouseOver() && startProfile.active){
             int wheel = Mouse.getDWheel();
             if(wheel != 0) {
                 seconds = seconds + ((wheel / 120) * 5); /* 1 Click is 120, 1 click is 5 seconds */
                 seconds = Math.max(seconds, 5);
-                boolean triedMore = seconds > ServerDataPacketHandler.MAX_SECONDS;
-                seconds = Math.min(seconds, ServerDataPacketHandler.MAX_SECONDS);
+                boolean triedMore = seconds > SPacketServerData.MAX_SECONDS;
+                seconds = Math.min(seconds, SPacketServerData.MAX_SECONDS);
                 if(triedMore){
-                    startProfile.displayString = "Limited to " + seconds + " seconds.";
+                    startProfile.setMessage("Limited to " + seconds + " seconds.");
                 }else {
-                    startProfile.displayString = "Profile for " + seconds + " seconds";
+                    startProfile.setMessage("Profile for " + seconds + " seconds");
                 }
             }
         }
@@ -171,35 +174,35 @@ public class GuiProfile extends GuiScreen {
     public void startProfile(){
         CPacketRequestScan scan = new CPacketRequestScan();
         scan.length = seconds;
-        startProfile.enabled = false;
-        startProfile.displayString = "Sending command...";
-        ClientProxy.NETWORK_WRAPPER.sendToServer(scan);
+        startProfile.active = false;
+        startProfile.setMessage("Sending command...");
+        CommonProxy.channel.sendToServer(scan);
     }
 
     private void analyzeResults(){
         ProfileResult result = LAST_PROFILE_RESULT.get();
         if(result != null) {
             if(result.getType() == ScanType.WORLD) {
-                mc.displayGuiScreen(new GuiScanResultsWorld(result));
+                Minecraft.getInstance().displayGuiScreen(new GuiScanResultsWorld(result));
             }else if(result.getType() == ScanType.FPS){
-                mc.displayGuiScreen(new GuiFPSResults(result));
+                Minecraft.getInstance().displayGuiScreen(new GuiFPSResults(result));
             }
         }
     }
 
     @Override
-    public void actionPerformed(GuiButton gui){
-        switch (gui.id){
+    public boolean handleComponentClicked(ITextComponent gui){
+        switch (gui.getString()){
             case BUTTON_START_PROFILE_ID:
-                startProfile.click(this,buttonList);
+                startProfile.onFPSClick(this);
                 break;
             case BUTTON_SHOW_TOGGLE:
                 if(LagOverlayGui.isShowing()) {
                     LagOverlayGui.hide();
-                    Minecraft.getMinecraft().displayGuiScreen(null);
+                    Minecraft.getInstance().displayGuiScreen(null);
                 }else{
                     LagOverlayGui.show();
-                    Minecraft.getMinecraft().displayGuiScreen(null);
+                    Minecraft.getInstance().displayGuiScreen(null);
                 }
                 break;
             case BUTTON_ANALYZE_RESULTS:
@@ -208,24 +211,15 @@ public class GuiProfile extends GuiScreen {
             case BUTTON_DONATE:
                 DonateButton.donate();
                 break;
-            case BUTTON_OPTIONS:
-                mc.displayGuiScreen(new GuiInGameConfig(this));
-                break;
+            //            case BUTTON_OPTIONS:
+            //                Minecraft.getInstance().displayGuiScreen(new GuiInGameConfig(this));
+            //                break;
             case BUTTON_DOWNLOAD:
-                ClientProxy.NETWORK_WRAPPER.sendToServer(new CPacketRequestResult());
+                CommonProxy.channel.sendToServer(new CPacketRequestResult());
                 break;
         }
+
     }
 
-    @Override
-    public void onGuiClosed(){
-        super.onGuiClosed();
-        //TODO: Load the config, and install changes
-    }
-
-    @Override
-    public boolean doesGuiPauseGame(){
-        return false;
-    }
 
 }

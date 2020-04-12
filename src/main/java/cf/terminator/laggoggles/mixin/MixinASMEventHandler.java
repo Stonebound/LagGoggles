@@ -1,8 +1,8 @@
 package cf.terminator.laggoggles.mixin;
 
-import net.minecraftforge.fml.common.ModContainer;
-import net.minecraftforge.fml.common.eventhandler.ASMEventHandler;
-import net.minecraftforge.fml.common.eventhandler.IEventListener;
+import net.minecraftforge.eventbus.ASMEventHandler;
+import net.minecraftforge.eventbus.api.IEventListener;
+import net.minecraftforge.fml.ModContainer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 

@@ -8,14 +8,15 @@ import cf.terminator.laggoggles.util.Graphical;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraftforge.fml.client.GuiScrollingList;
+import net.minecraftforge.client.gui.ScrollPanel;
+
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class GuiEntityTypes extends GuiScrollingList {
+public class GuiEntityTypes extends ScrollPanel {
 
     private TreeMap<Long, String> DATA = new TreeMap<>();
 
@@ -26,7 +27,7 @@ public class GuiEntityTypes extends GuiScrollingList {
     private ProfileResult result;
 
     public GuiEntityTypes(Minecraft client, int width, int height, int top, int bottom, int left, int screenWidth, int screenHeight, ProfileResult result) {
-        super(client, width, height, top, bottom, left, slotHeight, screenWidth, screenHeight);
+        super(client, width, height, top, left);
         FONTRENDERER = client.fontRenderer;
         this.result = result;
         ScanType type = result.getType();
@@ -81,25 +82,13 @@ public class GuiEntityTypes extends GuiScrollingList {
         }
     }
 
-
     @Override
-    protected int getSize() {
+    public void render(int mouseX, int mouseY, float partialTicks){
+        super.render(mouseX, mouseY, partialTicks);
+    }
+
+    @Override protected int getContentHeight() {
         return DATA.size();
-    }
-
-    @Override
-    protected void elementClicked(int slot, boolean doubleClick) {
-
-    }
-
-    @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks){
-        super.drawScreen(mouseX, mouseY, partialTicks);
-    }
-
-    @Override
-    protected boolean isSelected(int index) {
-        return false;
     }
 
     @Override
@@ -108,15 +97,9 @@ public class GuiEntityTypes extends GuiScrollingList {
 
     }
 
-    public void handleMouseInput() throws IOException {
-        super.handleMouseInput(left, top);
-    }
 
     @Override
-    protected void drawSlot(int slot, int entryRight, int slotTop, int slotBuffer, Tessellator tess) {
-        if(slot == -1){
-            return;
-        }
+    protected void drawPanel(int entryRight, int relativeY, Tessellator tess, int mouseX, int mouseY) {
         Long nanos = DATA.descendingKeySet().toArray(new Long[0])[slot];
         String name = DATA.get(nanos);
 

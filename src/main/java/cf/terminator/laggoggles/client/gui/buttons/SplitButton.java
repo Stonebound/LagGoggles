@@ -2,14 +2,14 @@ package cf.terminator.laggoggles.client.gui.buttons;
 
 import cf.terminator.laggoggles.client.gui.GuiProfile;
 import cf.terminator.laggoggles.client.gui.LagOverlayGui;
-import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.widget.button.Button;
 
 import java.util.List;
 
 import static cf.terminator.laggoggles.client.gui.buttons.SplitButton.State.NORMAL;
 import static cf.terminator.laggoggles.client.gui.buttons.SplitButton.State.SPLIT;
 
-public abstract class SplitButton extends GuiButton{
+public abstract class SplitButton extends Button  {
 
     State state = NORMAL;
     long lastClick = 0;
@@ -18,16 +18,16 @@ public abstract class SplitButton extends GuiButton{
         SPLIT,
     }
 
-    protected final GuiButton clientButton;
-    protected final GuiButton serverButton;
+    protected final Button clientButton;
+    protected final Button serverButton;
 
-    public SplitButton(int buttonId, int x, int y, int widthIn, int heightIn, String buttonText) {
-        super(buttonId, x, y, widthIn, heightIn, buttonText);
-        clientButton = new GuiButton(id,x + width/2 + 5,y,width/2 - 5, height, "FPS");
-        serverButton = new GuiButton(id,x,y,width/2 - 5, height, "World");
+    public SplitButton(int x, int y, int widthIn, int heightIn, String buttonText) {
+        super(x, y, widthIn, heightIn, buttonText, Button::onPress);
+        clientButton = new Button(x + width/2 + 5, y,width/2 - 5, height, "FPS", onPress);
+        serverButton = new Button(x,y,width/2 - 5, height, "World", onPress);
     }
 
-    public void click(GuiProfile parent, List<GuiButton> buttonList){
+    public void onPress(GuiProfile parent, List<Button> buttonList){
         if(lastClick + 50 > System.currentTimeMillis()){
             return;
         }
@@ -43,9 +43,9 @@ public abstract class SplitButton extends GuiButton{
             buttonList.add(this);
             buttonList.remove(clientButton);
             buttonList.remove(serverButton);
-            if(serverButton.isMouseOver()){
+            if(serverButton.isHovered()){
                 onWorldClick(parent);
-            }else if(clientButton.isMouseOver()){
+            }else if(clientButton.isHovered()){
                 onFPSClick(parent);
             }
             state = NORMAL;

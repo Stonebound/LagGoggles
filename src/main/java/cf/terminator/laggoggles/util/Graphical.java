@@ -1,6 +1,6 @@
 package cf.terminator.laggoggles.util;
 
-import cf.terminator.laggoggles.client.ClientConfig;
+import cf.terminator.laggoggles.config.Config;
 
 public class Graphical {
 
@@ -15,7 +15,7 @@ public class Graphical {
     public static final int BLUE_CHANNEL  = 2;
 
     public static double[] heatToColor(double heat){
-        return ClientConfig.COLORS.heatToColor(heat);
+        return Config.CLIENT.COLORS.get().heatToColor(heat);
     }
 
     public static int RGBtoInt(double[] rgb){

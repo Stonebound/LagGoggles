@@ -19,6 +19,7 @@
 
 package cf.terminator.laggoggles.client.gui;
 
+import cf.terminator.laggoggles.CommonProxy;
 import cf.terminator.laggoggles.client.ClientProxy;
 import cf.terminator.laggoggles.packet.CPacketRequestEntityTeleport;
 import cf.terminator.laggoggles.packet.CPacketRequestTileEntityTeleport;
@@ -30,13 +31,14 @@ import cf.terminator.laggoggles.util.Graphical;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraftforge.fml.client.GuiScrollingList;
+import net.minecraftforge.client.gui.ScrollPanel;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.UUID;
 
-public class GuiSingleEntities extends GuiScrollingList {
+public class GuiSingleEntities extends ScrollPanel {
 
     private ArrayList<GuiScanResultsWorld.LagSource> LAGSOURCES = new ArrayList<>();
     private int selected = -1;
@@ -47,7 +49,7 @@ public class GuiSingleEntities extends GuiScrollingList {
     private ProfileResult result;
 
     public GuiSingleEntities(Minecraft client, int width, int height, int top, int bottom, int left, int screenWidth, int screenHeight, ProfileResult result) {
-        super(client, width, height, top, bottom, left, slotHeight, screenWidth, screenHeight);
+        super(client, width, height, top, left);
         FONTRENDERER = client.fontRenderer;
         this.result = result;
         ScanType type = result.getType();
@@ -85,7 +87,7 @@ public class GuiSingleEntities extends GuiScrollingList {
     }
 
     @Override
-    protected int getSize() {
+    protected int getContentHeight() {
         return LAGSOURCES.size();
     }
 
@@ -97,40 +99,25 @@ public class GuiSingleEntities extends GuiScrollingList {
                 case TILE_ENTITY:
                 case GUI_BLOCK:
                 case BLOCK:
-                    ClientProxy.NETWORK_WRAPPER.sendToServer(new CPacketRequestTileEntityTeleport(LAGSOURCES.get(slot).data));
-                    Minecraft.getMinecraft().displayGuiScreen(null);
+                    CommonProxy.channel.sendToServer(new CPacketRequestTileEntityTeleport(LAGSOURCES.get(slot).data));
+                    Minecraft.getInstance().displayGuiScreen(null);
                     break;
                 case ENTITY:
                 case GUI_ENTITY:
-                    ClientProxy.NETWORK_WRAPPER.sendToServer(new CPacketRequestEntityTeleport(LAGSOURCES.get(slot).data.getValue(ObjectData.Entry.ENTITY_UUID)));
-                    Minecraft.getMinecraft().displayGuiScreen(null);
+                    CommonProxy.channel.sendToServer(new CPacketRequestEntityTeleport((UUID) LAGSOURCES.get(slot).data.getValue(ObjectData.Entry.ENTITY_UUID)));
+                    Minecraft.getInstance().displayGuiScreen(null);
                     break;
             }
         }
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks){
-        super.drawScreen(mouseX, mouseY, partialTicks);
+    public void render(int mouseX, int mouseY, float partialTicks){
+        super.render(mouseX, mouseY, partialTicks);
     }
 
     @Override
-    protected boolean isSelected(int index) {
-        return selected == index;
-    }
-
-    @Override
-    protected void drawBackground() {
-
-
-    }
-
-    public void handleMouseInput() throws IOException {
-        super.handleMouseInput(left, top);
-    }
-
-    @Override
-    protected void drawSlot(int slot, int entryRight, int slotTop, int slotBuffer, Tessellator tess) {
+    protected void drawPanel(int entryRight, int relativeY, Tessellator tess, int mouseX, int mouseY) {
         if(slot == -1){
             return;
         }

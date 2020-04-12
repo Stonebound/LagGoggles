@@ -2,7 +2,7 @@ package cf.terminator.laggoggles.profiler;
 
 import cf.terminator.laggoggles.util.ThreadChecker;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.eventbus.api.Event;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;

@@ -1,6 +1,7 @@
 package cf.terminator.laggoggles.mixin;
 
 import net.minecraft.entity.Entity;
+import net.minecraft.world.dimension.DimensionType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,19 +20,19 @@ public abstract class MixinEntity {
     protected UUID entityUniqueID;
 
     @Shadow
-    public int dimension;
+    public DimensionType dimension;
 
     private Long LAGGOGGLES_START = null;
 
-    @Inject(method = "onUpdate", at = @At("HEAD"))
+    @Inject(method = "baseTick", at = @At("HEAD"))
     public void onEntityUpdateHEAD(CallbackInfo info){
         LAGGOGGLES_START = System.nanoTime();
     }
 
-    @Inject(method = "onUpdate", at = @At("RETURN"))
+    @Inject(method = "baseTick", at = @At("RETURN"))
     public void onEntityUpdateRETURN(CallbackInfo info){
         if(PROFILE_ENABLED.get() && LAGGOGGLES_START != null){
-            timingManager.addEntityTime(dimension, entityUniqueID, System.nanoTime() - LAGGOGGLES_START);
+            timingManager.addEntityTime(dimension.getId(), entityUniqueID, System.nanoTime() - LAGGOGGLES_START);
         }
     }
 

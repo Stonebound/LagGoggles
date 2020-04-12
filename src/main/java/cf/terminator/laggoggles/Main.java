@@ -1,47 +1,49 @@
 package cf.terminator.laggoggles;
 
 import cf.terminator.laggoggles.client.ClientProxy;
-import cf.terminator.laggoggles.mixinhelper.MixinValidator;
+import cf.terminator.laggoggles.command.LagGogglesCommand;
+//import cf.terminator.laggoggles.mixinhelper.MixinValidator;
+import cf.terminator.laggoggles.config.Config;
+import cf.terminator.laggoggles.profiler.TickCounter;
+import cf.terminator.laggoggles.server.RequestDataHandler;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod(modid = Main.MODID_LOWER, name = Main.MODID, version = Main.VERSION, acceptableRemoteVersions = "*", guiFactory = "cf.terminator.laggoggles.client.gui.GuiInGameConfigFactory")
-@IFMLLoadingPlugin.SortingIndex(1001)
+@Mod(Main.MODID_LOWER)
 public class Main {
     public static final String MODID = "LagGoggles";
     public static final String MODID_LOWER = "laggoggles";
     public static final String VERSION = "${version}";
-    public static Logger LOGGER;
+    public static Logger LOGGER = LogManager.getLogger();
 
-    @SidedProxy(
-            modId = Main.MODID_LOWER,
-            serverSide = "cf.terminator.laggoggles.CommonProxy",
-            clientSide = "cf.terminator.laggoggles.client.ClientProxy"
-    )
-    public static CommonProxy proxy;
+    public Main() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventBus.addListener(Main::init);
 
-    @EventHandler
-    public void preinit(FMLPreInitializationEvent e){
-        LOGGER = e.getModLog();
-        proxy.preinit(e);
-        MixinValidator.validate();
-        Main.LOGGER.info("Registered sided proxy for: " + (proxy instanceof ClientProxy ? "Client" : "Dedicated server"));
+        MinecraftForge.EVENT_BUS.addListener(Main::onServerStart);
+
+        ClientProxy.addListeners(modEventBus);
     }
 
-    @EventHandler
-    public void postinit(FMLPostInitializationEvent e) {
-        proxy.postinit(e);
+    public static void init(FMLCommonSetupEvent e){
+//        MixinValidator.validate();
+        CommonProxy.registerPackets();
+        Config.registerAll();
     }
 
-    @EventHandler
-    public void onServerStart(FMLServerStartingEvent e){
-        proxy.serverStartingEvent(e);
+
+    public static void onServerStart(FMLServerStartingEvent e){
+        new LagGogglesCommand(e.getCommandDispatcher());
+        MinecraftForge.EVENT_BUS.register(new TickCounter());
+        MinecraftForge.EVENT_BUS.register(new RequestDataHandler());
     }
 
 }

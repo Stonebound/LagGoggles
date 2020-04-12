@@ -9,21 +9,25 @@ import cf.terminator.laggoggles.packet.SPacketProfileStatus;
 import cf.terminator.laggoggles.util.Perms;
 import cf.terminator.laggoggles.util.RunInClientThread;
 import cf.terminator.laggoggles.util.RunInServerThread;
-import cf.terminator.laggoggles.util.Side;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.command.ICommandSender;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.command.CommandSource;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.WorldServer;
+import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.network.PacketDistributor;
+import net.minecraftforge.fml.server.ServerLifecycleHooks;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -34,7 +38,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static cf.terminator.laggoggles.util.Graphical.formatClassName;
-import static cf.terminator.laggoggles.util.Side.getSide;
 
 public class ProfileManager {
 
@@ -44,7 +47,7 @@ public class ProfileManager {
     private static final Object LOCK = new Object();
     private static final FPSCounter FPS_COUNTER = new FPSCounter();
 
-    public static ProfileResult runProfiler(int seconds, ScanType type, ICommandSender issuer) throws IllegalStateException{
+    public static ProfileResult runProfiler(int seconds, ScanType type, CommandSource issuer) throws IllegalStateException{
         try {
             if(PROFILE_ENABLED.get()){
                 throw new IllegalStateException("Can't start profiler when it's already running!");
@@ -56,18 +59,19 @@ public class ProfileManager {
             new RunInServerThread(new Runnable() {
                 @Override
                 public void run() {
-                    for(EntityPlayerMP user : Perms.getLagGogglesUsers()) {
-                        CommonProxy.sendTo(status, user);
+                    for(ServerPlayerEntity user : Perms.getLagGogglesUsers()) {
+                        CommonProxy.channel.send(PacketDistributor.PLAYER.with(() -> user), status);
                     }
                 }
             });
-            issuer.sendMessage(new TextComponentString(TextFormatting.GRAY + Main.MODID + TextFormatting.WHITE + ": Profiler started for " + seconds + " seconds."));
+
+            issuer.sendFeedback(new StringTextComponent(TextFormatting.GRAY + Main.MODID + TextFormatting.WHITE + ": Profiler started for " + seconds + " seconds."), true);
             Main.LOGGER.info(Main.MODID + " profiler started by " + issuer.getName() + " (" + seconds + " seconds)");
 
             long start = System.nanoTime();
             TickCounter.ticks.set(0L);
             timingManager = new TimingManager();
-            if(Side.getSide().isClient()) {
+            if(FMLEnvironment.dist.isClient()) {
                 FPS_COUNTER.start();
             }
             PROFILE_ENABLED.set(true);
@@ -84,19 +88,20 @@ public class ProfileManager {
                         ArrayList<BlockPos> ignoredBlocks = new ArrayList<>();
 
                         Main.LOGGER.info("Processing results synchronously...");
-                        ProfileResult result = new ProfileResult(start, System.nanoTime(), TickCounter.ticks.get(), getSide(), type);
-                        if(Side.getSide().isClient()) {
+                        ProfileResult result = new ProfileResult(start, System.nanoTime(), TickCounter.ticks.get(), FMLEnvironment.dist, type);
+                        if(FMLEnvironment.dist.isClient()) {
                             result.setFrames(frames);
                         }
 
                         for(Map.Entry<Integer, TimingManager.WorldData> entry : timingManager.getTimings().entrySet()){
                             int worldID = entry.getKey();
-                            WorldServer world = DimensionManager.getWorld(worldID);
+                            ServerWorld world =
+                                    DimensionManager.getWorld(ServerLifecycleHooks.getCurrentServer(), DimensionType.getById(worldID), false, false); //
                             if(world == null){
                                 continue;
                             }
                             for(Map.Entry<UUID, Long> entityTimes : entry.getValue().getEntityTimes().entrySet()){
-                                Entity e = world.getEntityFromUuid(entityTimes.getKey());
+                                Entity e = world.getEntityByUuid(entityTimes.getKey());
                                 if(e == null){
                                     continue;
                                 }
@@ -105,7 +110,7 @@ public class ProfileManager {
                                             worldID,
                                             e.getName(),
                                             formatClassName(e.getClass().toString()),
-                                            e.getPersistentID(),
+                                            e.getUniqueID(),
                                             entityTimes.getValue(),
                                             ObjectData.Type.ENTITY)
                                     );
@@ -120,13 +125,8 @@ public class ProfileManager {
                                 TileEntity e = world.getTileEntity(tileEntityTimes.getKey());
                                 if(e != null) {
                                     try {
-                                        String name;
-                                        ITextComponent displayName = e.getDisplayName();
-                                        if (displayName != null) {
-                                            name = displayName.getFormattedText();
-                                        } else {
-                                            name = e.getClass().getSimpleName();
-                                        }
+                                        String name = e.getType().getRegistryName().toString();
+
                                         result.addData(new ObjectData(
                                                 worldID,
                                                 name,
@@ -141,8 +141,8 @@ public class ProfileManager {
                                 }else{
                                     /* The block is not a tile entity, get the actual block. */
                                     try {
-                                        IBlockState state = world.getBlockState(tileEntityTimes.getKey());
-                                        String name = state.getBlock().getLocalizedName();
+                                        BlockState state = world.getBlockState(tileEntityTimes.getKey());
+                                        String name = state.getBlock().getRegistryName().toString();
                                         result.addData(new ObjectData(
                                                 worldID,
                                                 name,
@@ -179,8 +179,8 @@ public class ProfileManager {
                     }
                 }
             };
-            Side side = Side.getSide();
-            if(side.isServer()){
+            Dist side = FMLEnvironment.dist;
+            if(side.isDedicatedServer()){
                 new RunInServerThread(task);
             }else if(side.isClient()){
                 new RunInClientThread(task);
@@ -193,7 +193,7 @@ public class ProfileManager {
             }
             MinecraftForge.EVENT_BUS.post(new LagGogglesEvent.LocalResult(LAST_PROFILE_RESULT.get()));
             Main.LOGGER.info("Profiling complete.");
-            issuer.sendMessage(new TextComponentString(TextFormatting.GRAY + Main.MODID + TextFormatting.WHITE + ": Profiling complete."));
+            issuer.sendFeedback(new StringTextComponent(TextFormatting.GRAY + Main.MODID + TextFormatting.WHITE + ": Profiling complete."), true);
             return LAST_PROFILE_RESULT.get();
         } catch (Throwable e) {
             Main.LOGGER.error("Woa! Something went wrong while processing results! Please contact Terminator_NL and submit the following error in an issue at github!");
@@ -204,36 +204,30 @@ public class ProfileManager {
 
     public static void insertGuiData(ProfileResult result, TimingManager timings) {
         TreeMap<UUID, Long> entityTimes = timings.getGuiEntityTimings();
-        for (Entity e : Minecraft.getMinecraft().world.loadedEntityList) {
+        for (Entity e : Minecraft.getInstance().world.getAllEntities()) {
             Long time = entityTimes.get(e.getUniqueID());
             if (time == null) {
                 continue;
             }
             result.addData(new ObjectData(
-                    e.world.provider.getDimension(),
+                    e.world.getDimension().getType().getId(),
                     e.getName(),
                     formatClassName(e.getClass().toString()),
-                    e.getPersistentID(),
+                    e.getUniqueID(),
                     time,
                     ObjectData.Type.GUI_ENTITY)
             );
         }
 
         TreeMap<BlockPos, Long> blockTimes = timings.getGuiBlockTimings();
-        WorldClient world = Minecraft.getMinecraft().world;
+        ClientWorld world = Minecraft.getInstance().world;
         for (Map.Entry<BlockPos, Long> e: blockTimes.entrySet()) {
             Long time = e.getValue();
             TileEntity entity = world.getTileEntity(e.getKey());
             if(entity != null) {
-                String name;
-                ITextComponent displayName = entity.getDisplayName();
-                if (displayName != null) {
-                    name = displayName.getFormattedText();
-                } else {
-                    name = entity.getClass().getSimpleName();
-                }
+                String name = entity.getType().getRegistryName().toString();
                 result.addData(new ObjectData(
-                        entity.getWorld().provider.getDimension(),
+                        entity.getWorld().getDimension().getType().getId(),
                         name,
                         formatClassName(entity.getClass().toString()),
                         entity.getPos(),
@@ -242,10 +236,10 @@ public class ProfileManager {
                 );
             }else{
                 /* The block is not a tile entity, get the actual block. */
-                IBlockState state = world.getBlockState(e.getKey());
-                String name = state.getBlock().getLocalizedName();
+                BlockState state = world.getBlockState(e.getKey());
+                String name = state.getBlock().getNameTextComponent().toString();
                 result.addData(new ObjectData(
-                        world.provider.getDimension(),
+                        world.getDimension().getType().getId(),
                         name,
                         formatClassName(state.getBlock().getClass().toString()),
                         e.getKey(),

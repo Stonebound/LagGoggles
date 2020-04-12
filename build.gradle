@@ -1,190 +1,120 @@
 buildscript {
     repositories {
-        jcenter()
-        maven { url = "http://files.minecraftforge.net/maven" }
+        maven { url = 'https://files.minecraftforge.net/maven' }
         maven {
             name = 'sponge'
             url = 'https://repo.spongepowered.org/maven'
         }
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
+        jcenter()
+        mavenCentral()
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
-        classpath "com.wynprice.cursemaven:CurseMaven:1.1.0"
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
-String LagGogglesVersion = "1.12.2-4.11"
-String spongeForgeVersion = '1.12.2-2838-7.1.7-RC3881'
 
-boolean isFat = hasProperty("isFat")
-boolean installIntoServer = hasProperty("isServer")
-String buildType = (isFat ? "FAT" : "THIN")
-
-
-
-String version_file = "./build/last_version.txt"
-String last_file_name = "./build/last_file_name.txt"
-String last_file_path = "./build/last_file_path.txt"
-
-if(project.gradle.startParameter.taskNames.contains("build")) {
-    println("Building: " + buildType)
-    delete version_file
-    delete last_file_name
-    delete last_file_path
+plugins {
+    id "com.github.johnrengelman.shadow" version "4.0.4"
 }
 
-
-apply plugin: 'net.minecraftforge.gradle.forge'
-// EZ testing of compatibility! Nice!
-apply plugin: "com.wynprice.cursemaven"
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
 apply plugin: 'org.spongepowered.mixin'
-//Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
 
 repositories {
+    jcenter()
     maven {
-        name = "sponge"
-        url = "https://repo.spongepowered.org/maven/"
+        name = 'sponge'
+        url = 'https://repo.spongepowered.org/maven'
     }
 }
 
-ext.GetCommitCount = { ->
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'rev-list', '--all', '--count'
-        standardOutput = stdout
-    }
-    return stdout.toString().trim()
-}
+version = '1.0'
+group = 'cf.terminator.laggoggles'
+archivesBaseName = 'laggoggles'
 
-version = LagGogglesVersion + "-" + GetCommitCount()
-group= "cf.terminator.laggoggles" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "LagGoggles-" + buildType
-
-sourceCompatibility = targetCompatibility = "1.8" // Need this here so eclipse task generates correctly.
-compileJava {
-    sourceCompatibility = targetCompatibility = "1.8"
-
-
-    options.fork = true
-    options.forkOptions.executable = 'javac'
-    options.compilerArgs << "-XDignore.symbol.file"
-}
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
 minecraft {
-    version = "1.12.2-14.23.5.2838"
-    runDir = "run"
+    mappings channel: 'snapshot', version: '20190719-1.14.3'
+    // makeObfSourceJar = false
 
-    replaceIn "Main.java"
-    replace '${version}', buildType + "-" + project.version
-    mappings = "snapshot_20180808"
+    runs {
+        client {
+            workingDirectory project.file('run')
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
 
-    replaceIn "mixinhelper/MixinConfigPlugin.java"
-    replace '${spongeforge_version}', spongeForgeVersion
-    replaceIn "mixinhelper/MixinConfigPlugin.java"
-    replace '${forge_version}', forgeVersion
-}
+            mods {
+                laggoggles {
+                    source sourceSets.main
+                }
+            }
+        }
 
-configurations {
-    embed
-    compile.extendsFrom(embed)
-    compileOnly.transitive = false
+        server {
+            workingDirectory project.file('run')
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                laggoggles {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+            args '--mod', 'laggoggles', '--all', '--output', file('src/generated/resources/')
+            mods {
+                laggoggles {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
 }
 
 dependencies {
-    /*
-        Sponge
-     */
-    compileOnly 'org.spongepowered:spongeforge:' + spongeForgeVersion + ':dev'
-
-
-
-    if(isFat) {
-        embed('org.spongepowered:mixin:0.8-SNAPSHOT') {
-            ['gson','guava','commons-io'].each {
-                exclude module: it
-            }
-            exclude module: 'launchwrapper'
-        }
-    }else{
-        compile ('org.spongepowered:mixin:0.8-SNAPSHOT'){
-            ['gson','guava','commons-io'].each {
-                exclude module: it
-            }
-        }
-    }
-}
-
-processResources {
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-
-    // replace stuff
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        include 'mixins.laggoggles.json'
-        expand 'version':project.version, 'mcversion':project.minecraft.version
-    }
-
-    // copy everything else, thats not the mcmod.info or mixins.laggoggles.json
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-        exclude 'mixins.laggoggles.json'
-    }
-
-}
-
-sourceSets {
-    main {
-        refMap = "mixins.laggoggles.refmap.json"
-    }
+    minecraft 'net.minecraftforge:forge:1.14.4-28.2.3'
+    compile 'org.spongepowered:mixin:0.8.1-SNAPSHOT'
 }
 
 jar {
-    from configurations.embed.collect {
-        if(it.isDirectory()){
-            return it
-        }else{
-            FileTree tmp = zipTree(it)
-            for(File s : tmp.files) {
-                if (s.toString().endsWith(".html")){
-                    System.out.println("File " + s + " removed")
-                    tmp.files.remove(s)
-                }
-            }
-            return tmp
-        }
-
-    }
-    rename 'LICENSE.txt', 'LICENSE-mixin.txt'
-    from ('LICENSE.md')
-    manifest.attributes(
-            'FMLCorePluginContainsFMLMod': 'true',
-            'MixinConfigs': 'mixins.laggoggles.json',
-            'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
-            'TweakOrder': '0',
-            'ForceLoadAsMod': 'true'
-    )
-}
-
-task finalize << {
-    new File(projectDir, version_file).text = version
-    new File(projectDir, last_file_name).text = jar.archiveName
-    new File(projectDir, last_file_path).text = jar.archivePath
-
-    if(installIntoServer) {
-        delete fileTree('run_server_obf/mods') {
-            include 'LagGoggles*'
-        }
-        println("Copying " + jar.archivePath + " into run_server_obf/mods")
-        copy {
-            from jar.archivePath
-            into "run_server_obf/mods"
-        }
+    manifest {
+        attributes([
+            "Specification-Title": "laggoggles",
+            "Implementation-Title": project.name,
+            "Implementation-Version": "${version}",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            "MixinConfigs": "mixins.laggoggles.json"
+        ])
     }
 }
 
-build.finalizedBy(finalize)
+mixin {
+    disableRefMapWarning = true
+    add sourceSets.main, 'mixins.laggoggles.refmap.json'
+}
+
+shadowJar {
+    classifier = 'full'
+}
+
+reobf {
+    shadowJar {
+        classpath = sourceSets.main.compileClasspath
+    }
+}
+
+build.dependsOn(shadowJar)

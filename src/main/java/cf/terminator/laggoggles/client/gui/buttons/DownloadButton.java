@@ -3,33 +3,33 @@ package cf.terminator.laggoggles.client.gui.buttons;
 import cf.terminator.laggoggles.Main;
 import cf.terminator.laggoggles.util.Perms;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.client.config.GuiUtils;
 
 import java.util.ArrayList;
 
-import static cf.terminator.laggoggles.client.ServerDataPacketHandler.PERMISSION;
 import static cf.terminator.laggoggles.client.gui.GuiProfile.getSecondsLeftForMessage;
+import static cf.terminator.laggoggles.packet.SPacketServerData.PERMISSION;
 
-public class DownloadButton extends GuiButton{
+public class DownloadButton extends Button {
 
     private ResourceLocation DOWNLOAD_TEXTURE = new ResourceLocation(Main.MODID_LOWER, "download.png");
-    private final GuiScreen parent;
+    private final Screen parent;
 
-    public DownloadButton(GuiScreen parent, int buttonId, int x, int y) {
-        super(buttonId, x, y, 20, 20, "");
+    public DownloadButton(Screen parent, int buttonId, int x, int y) {
+        super(x, y, 20, 20, "", Button::onPress);
         this.parent = parent;
     }
 
     @Override
-    public void drawButton(Minecraft mc, int mouseX, int mouseY, float partial) {
-        super.drawButton(mc, mouseX, mouseY, partial);
-        mc.getTextureManager().bindTexture(DOWNLOAD_TEXTURE);
-        drawModalRectWithCustomSizedTexture(x+3,y+3,0,0,14,14,14,14);
-        if(hovered){
+    public void renderButton(int mouseX, int mouseY, float partial) {
+        super.render(mouseX, mouseY, partial);
+        Minecraft.getInstance().getTextureManager().bindTexture(DOWNLOAD_TEXTURE);
+        blit(x+3,y+3,0,0,14,14,14,14);
+        if (isHovered){
             ArrayList<String> hover = new ArrayList<>();
             hover.add("Download the latest available");
             hover.add("world result from the server.");
@@ -45,7 +45,7 @@ public class DownloadButton extends GuiButton{
                 }
             }
 
-            GuiUtils.drawHoveringText(hover, mouseX, mouseY, parent.width, parent.height, -1, mc.fontRenderer);
+            GuiUtils.drawHoveringText(hover, mouseX, mouseY, parent.width, parent.height, -1, Minecraft.getInstance().fontRenderer);
 
         }
     }

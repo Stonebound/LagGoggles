@@ -2,14 +2,14 @@ package cf.terminator.laggoggles.client.gui.buttons;
 
 import cf.terminator.laggoggles.Main;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.util.ResourceLocation;
 
 import java.awt.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class DonateButton extends GuiButton {
+public class DonateButton extends Button {
 
     private ResourceLocation DONATE_TEXTURE = new ResourceLocation(Main.MODID_LOWER, "donate.png");
     private static final URI DONATE_URL;
@@ -22,14 +22,14 @@ public class DonateButton extends GuiButton {
     }
 
     public DonateButton(int buttonId, int x, int y) {
-        super(buttonId, x, y, 90, 20, "Donate");
+        super(x, y, 90, 20, "Donate", Button::onPress);
     }
 
     @Override
-    public void drawButton(Minecraft mc, int mouseX, int mouseY, float partial) {
-        super.drawButton(mc, mouseX, mouseY, partial);
-        mc.getTextureManager().bindTexture(DONATE_TEXTURE);
-        drawModalRectWithCustomSizedTexture(x+3,y+3,0,0,14,14,14,14);
+    public void renderButton(int mouseX, int mouseY, float partial) {
+        super.renderButton(mouseX, mouseY, partial);
+        Minecraft.getInstance().getTextureManager().bindTexture(DONATE_TEXTURE);
+        blit(x+3,y+3,0,0,14,14,14,14);
     }
 
 

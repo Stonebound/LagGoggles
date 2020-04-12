@@ -5,12 +5,13 @@ import cf.terminator.laggoggles.packet.ObjectData;
 import cf.terminator.laggoggles.profiler.ProfileResult;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.util.text.StringTextComponent;
 
 import java.io.IOException;
 import java.util.TreeMap;
 
-public class GuiScanResultsWorld extends GuiScreen {
+public class GuiScanResultsWorld extends Screen {
 
     private final FontRenderer FONTRENDERER;
     public final TreeMap<Integer, LagSource> DATA_ID_TO_SOURCE = new TreeMap<>();
@@ -23,15 +24,15 @@ public class GuiScanResultsWorld extends GuiScreen {
     private ProfileResult result;
 
     public GuiScanResultsWorld(ProfileResult result){
-        super();
-        FONTRENDERER = Minecraft.getMinecraft().fontRenderer;
+        super(new StringTextComponent("Scan Results"));
+        FONTRENDERER = Minecraft.getInstance().fontRenderer;
         this.result = result;
     }
 
     @Override
-    public void initGui() {
-        super.initGui();
-
+    public void init() {
+        super.init();
+        Minecraft mc = Minecraft.getInstance();
         /*                                            width  , height              , top                   , bottom         , left      , screenWidth, screenHeight, ProfileResult*/
         guiSingleEntities = new GuiSingleEntities(mc, width/2, height - 25         , 45                    , height         ,  0        , width      , height      , result);
         guiEntityTypes    = new GuiEntityTypes(   mc, width/2, (height - 25)/2     , 45                    , (height - 25)/2,  width/2  , width      , height      , result);
@@ -39,12 +40,12 @@ public class GuiScanResultsWorld extends GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks){
-        super.drawBackground(0);
-        super.drawScreen(mouseX, mouseY, partialTicks);
-        guiSingleEntities.drawScreen(mouseX, mouseY, partialTicks);
-        guiEntityTypes.drawScreen(mouseX, mouseY, partialTicks);
-        guiEventTypes.drawScreen(mouseX, mouseY, partialTicks);
+    public void render(int mouseX, int mouseY, float partialTicks){
+        super.renderBackground(0);
+        super.render(mouseX, mouseY, partialTicks);
+        guiSingleEntities.render(mouseX, mouseY, partialTicks);
+        guiEntityTypes.render(mouseX, mouseY, partialTicks);
+        guiEventTypes.render(mouseX, mouseY, partialTicks);
         drawString(Main.MODID + ": profile data for WORLD scan results", 5, 5, 0xFFFFFF);
         drawString("Times are presented in microseconds", 5, 15, 0xCCCCCC);
         drawString("Single entities", 5, 35, 0xFFFFFF);
@@ -55,7 +56,7 @@ public class GuiScanResultsWorld extends GuiScreen {
 
 
     @Override
-    public boolean doesGuiPauseGame(){
+    public boolean isPauseScreen(){
         return false;
     }
 

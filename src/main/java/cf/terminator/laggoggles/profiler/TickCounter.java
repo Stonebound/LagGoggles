@@ -1,7 +1,7 @@
 package cf.terminator.laggoggles.profiler;
 
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.concurrent.atomic.AtomicLong;
 

@@ -2,7 +2,7 @@ package cf.terminator.laggoggles.mixinhelper;
 
 import cf.terminator.laggoggles.Main;
 import cf.terminator.laggoggles.mixinhelper.extended.DynamicMethodReplacer;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraft.client.Minecraft;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
@@ -97,7 +97,8 @@ public class MixinConfigPlugin implements IMixinConfigPlugin{
                     Class.forName("org.spongepowered.asm.launch.MixinTweaker", false, getClass().getClassLoader());
                 } catch (ClassNotFoundException ignored_1) {
                     LOGGER.info("Oh no! It looks like you also do not have Mixin installed. Please use the FAT version of LagGoggles.");
-                    FMLCommonHandler.instance().exitJava(1, true);
+//                    FMLCommonHandler.instance().exitJava(1, true);
+                    Minecraft.getInstance().shutdown();
                 }
             }
 

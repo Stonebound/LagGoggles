@@ -3,21 +3,46 @@ package cf.terminator.laggoggles.packet;
 import cf.terminator.laggoggles.profiler.TimingManager;
 import cf.terminator.laggoggles.util.Coder;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraftforge.fml.network.NetworkEvent;
 
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static cf.terminator.laggoggles.util.Graphical.formatClassName;
 
-public class ObjectData implements IMessage {
+public class ObjectData extends SimplePacketBase {
 
     private TreeMap<Entry, Object> data = new TreeMap<>();
     public Type type;
 
     ObjectData(){}
+
+    public ObjectData(ByteBuf buf) {
+        type = Type.values()[buf.readInt()];
+        int size = buf.readInt();
+        for(int i=0; i<size; i++){
+            Entry entry = Entry.values()[buf.readInt()];
+            data.put(entry, entry.coder.read(buf));
+        }
+    }
+
+    @Override public void write(PacketBuffer buf) {
+        buf.writeInt(type.ordinal());
+        buf.writeInt(data.size());
+        for(Map.Entry<Entry, Object> entry : data.entrySet()){
+            buf.writeInt(entry.getKey().ordinal());
+            entry.getKey().coder.write(entry.getValue(), buf);
+        }
+    }
+
+    @Override public void handle(Supplier<NetworkEvent.Context> context) {
+
+    }
 
     public enum Type{
         ENTITY,
@@ -55,7 +80,7 @@ public class ObjectData implements IMessage {
         }
     }
 
-    public ObjectData(int worldID, String name, String className, UUID id, long nanos, Type type_){
+    public ObjectData(int worldID, ITextComponent name, String className, UUID id, long nanos, Type type_){
         type = type_;
         data.put(Entry.WORLD_ID, worldID);
         data.put(Entry.ENTITY_NAME, name);
@@ -89,27 +114,6 @@ public class ObjectData implements IMessage {
             throw new IllegalArgumentException("Cant find the entry " + entry + " for " + type);
         }
         return (T) data.get(entry);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public void toBytes(ByteBuf buf) {
-        buf.writeInt(type.ordinal());
-        buf.writeInt(data.size());
-        for(Map.Entry<Entry, Object> entry : data.entrySet()){
-            buf.writeInt(entry.getKey().ordinal());
-            entry.getKey().coder.write(entry.getValue(), buf);
-        }
-    }
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        type = Type.values()[buf.readInt()];
-        int size = buf.readInt();
-        for(int i=0; i<size; i++){
-            Entry entry = Entry.values()[buf.readInt()];
-            data.put(entry, entry.coder.read(buf));
-        }
     }
 
     @Override

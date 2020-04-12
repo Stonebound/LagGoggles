@@ -2,11 +2,11 @@ package cf.terminator.laggoggles.mixin;
 
 import cf.terminator.laggoggles.util.ASMEventHandler;
 import com.google.common.base.Throwables;
-import net.minecraftforge.fml.common.ModContainer;
-import net.minecraftforge.fml.common.eventhandler.Event;
-import net.minecraftforge.fml.common.eventhandler.EventBus;
-import net.minecraftforge.fml.common.eventhandler.IEventExceptionHandler;
-import net.minecraftforge.fml.common.eventhandler.IEventListener;
+import net.minecraftforge.eventbus.EventBus;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.IEventExceptionHandler;
+import net.minecraftforge.eventbus.api.IEventListener;
+import net.minecraftforge.fml.ModContainer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -39,7 +39,7 @@ public abstract class MixinEventBus implements IEventExceptionHandler {
                 if(listeners[index] instanceof ASMEventHandler) {
                     ModContainer mod = ((ASMEventHandler) listeners[index]).getOwner();
                     if (mod != null) {
-                        String identifier = mod.getName() + " (" + mod.getSource().getName() + ")";
+                        String identifier = mod.getModInfo().getDisplayName() + " (" + mod.getModInfo().getOwningFile() + ")";
                         timingManager.addEventTime(identifier, event, nanos);
                     }
                 }
@@ -51,7 +51,7 @@ public abstract class MixinEventBus implements IEventExceptionHandler {
         return event.isCancelable() ? event.isCanceled() : false;
     }
 
-    @Inject(method = "post(Lnet/minecraftforge/fml/common/eventhandler/Event;)Z", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "post(Lnet/minecraftforge/eventbus/api/Event;)Z", at = @At("HEAD"), cancellable = true)
     public void beforePost(Event event, CallbackInfoReturnable<Boolean> ci){
         if(PROFILE_ENABLED.get()){
             ci.setReturnValue(postWithScan(event));

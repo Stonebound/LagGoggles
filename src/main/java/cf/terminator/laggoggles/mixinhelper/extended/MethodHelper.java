@@ -1,7 +1,5 @@
 package cf.terminator.laggoggles.mixinhelper.extended;
 
-import cf.terminator.laggoggles.mixinhelper.MixinConfigPlugin;
-import com.sun.istack.internal.NotNull;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -12,8 +10,6 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Objects;
 import java.util.regex.Pattern;
-
-import static cf.terminator.laggoggles.mixinhelper.MixinConfigPlugin.LOGGER;
 
 public class MethodHelper {
 

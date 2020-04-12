@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Minecraft Client" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="GradleStart" />
-    <module name="LagGoggles-old.main" />
+    <module name="LagGoggles-1.14.main" />
     <option name="PROGRAM_PARAMETERS" value="--mixin mixins.laggoggles.json --tweakClass org.spongepowered.asm.launch.MixinTweaker" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/run_client" />
     <RunnerSettings RunnerId="Run" />

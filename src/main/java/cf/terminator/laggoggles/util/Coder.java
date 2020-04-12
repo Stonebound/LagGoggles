@@ -22,12 +22,12 @@ public abstract class Coder<T>{
     public static final Coder<String> STRING = new Coder<String>() {
         @Override
         public String read(ByteBuf buf) {
-            return ByteBufUtils.readUTF8String(buf);
+            return ByteBufUtil.readUTF8String(buf);
         }
 
         @Override
         public void write(String var, ByteBuf buf) {
-            ByteBufUtils.writeUTF8String(buf, var);
+            ByteBufUtil.writeUTF8String(buf, var);
         }
     };
 

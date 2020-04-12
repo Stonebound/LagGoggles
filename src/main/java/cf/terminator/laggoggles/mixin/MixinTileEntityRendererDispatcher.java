@@ -15,13 +15,13 @@ public class MixinTileEntityRendererDispatcher {
 
     private Long LAGGOGGLES_START = null;
 
-    @Inject(method = "render(Lnet/minecraft/tileentity/TileEntity;DDDFIF)V", at = @At("HEAD"))
-    public void beforeRender(TileEntity tileEntityIn, double x, double y, double z, float partialTicks, int destroyStage, float p_192854_10_, CallbackInfo info){
+    @Inject(method = "render(Lnet/minecraft/tileentity/TileEntity;FI)V", at = @At("HEAD"))
+    public void beforeRender(TileEntity tileEntityIn, float partialTicks, int destroyStage, CallbackInfo info){
         LAGGOGGLES_START = System.nanoTime();
     }
 
-    @Inject(method = "render(Lnet/minecraft/tileentity/TileEntity;DDDFIF)V", at = @At("HEAD"))
-    public void afterRender(TileEntity tileEntityIn, double x, double y, double z, float partialTicks, int destroyStage, float p_192854_10_, CallbackInfo info){
+    @Inject(method = "render(Lnet/minecraft/tileentity/TileEntity;FI)V", at = @At("HEAD"))
+    public void afterRender(TileEntity tileEntityIn, float partialTicks, int destroyStage, CallbackInfo info){
         if(PROFILE_ENABLED.get()){
             timingManager.addGuiBlockTime(tileEntityIn.getPos(), System.nanoTime() - LAGGOGGLES_START);
         }

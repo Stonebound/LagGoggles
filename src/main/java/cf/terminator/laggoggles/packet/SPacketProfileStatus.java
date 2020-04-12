@@ -1,10 +1,14 @@
 package cf.terminator.laggoggles.packet;
 
+import cf.terminator.laggoggles.client.gui.GuiProfile;
+import cf.terminator.laggoggles.util.ByteBufUtil;
 import io.netty.buffer.ByteBuf;
-import net.minecraftforge.fml.common.network.ByteBufUtils;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
 
-public class SPacketProfileStatus implements IMessage {
+import java.util.function.Supplier;
+
+public class SPacketProfileStatus extends SimplePacketBase {
 
     public boolean isProfiling = true;
     public String issuedBy = "Unknown";
@@ -17,17 +21,30 @@ public class SPacketProfileStatus implements IMessage {
         this.issuedBy = issuedBy;
     }
 
-    @Override
-    public void fromBytes(ByteBuf buf){
+    public SPacketProfileStatus(ByteBuf buf){
         isProfiling = buf.readBoolean();
         length = buf.readInt();
-        issuedBy = ByteBufUtils.readUTF8String(buf);
+        issuedBy = ByteBufUtil.readUTF8String(buf);
     }
 
     @Override
-    public void toBytes(ByteBuf buf) {
+    public void write(PacketBuffer buf) {
         buf.writeBoolean(isProfiling);
         buf.writeInt(length);
-        ByteBufUtils.writeUTF8String(buf, issuedBy);
+        ByteBufUtil.writeUTF8String(buf, issuedBy);
+    }
+
+    @Override
+    public void handle(Supplier<NetworkEvent.Context> context) {
+        context.get().enqueueWork(() -> {
+            GuiProfile.PROFILING_PLAYER = issuedBy;
+            if(isProfiling == true) {
+                GuiProfile.PROFILE_END_TIME = System.currentTimeMillis() + (length * 1000);
+            }else{
+                GuiProfile.PROFILE_END_TIME = System.currentTimeMillis();
+            }
+            GuiProfile.update();
+        });
+        context.get().setPacketHandled(true);
     }
 }

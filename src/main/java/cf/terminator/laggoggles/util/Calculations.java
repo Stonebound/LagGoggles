@@ -1,22 +1,23 @@
 package cf.terminator.laggoggles.util;
 
-import cf.terminator.laggoggles.client.ClientConfig;
+import cf.terminator.laggoggles.config.ClientConfig;
 import cf.terminator.laggoggles.client.gui.GuiScanResultsWorld;
+import cf.terminator.laggoggles.config.Config;
 import cf.terminator.laggoggles.packet.ObjectData;
 import cf.terminator.laggoggles.profiler.ProfileResult;
 import cf.terminator.laggoggles.profiler.TimingManager;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import static cf.terminator.laggoggles.util.Graphical.mu;
 
-@SideOnly(Side.CLIENT)
+@OnlyIn(Dist.CLIENT)
 public class Calculations {
 
     public static final double NANOS_IN_A_TICK = 50000000;
 
     public static double heat(long nanos, ProfileResult result) {
-        return Math.min((muPerTick(nanos, result) / ClientConfig.GRADIENT_MAXED_OUT_AT_MICROSECONDS) * 100, 100);
+        return Math.min((muPerTick(nanos, result) / Config.CLIENT.GRADIENT_MAXED_OUT_AT_MICROSECONDS.get()) * 100, 100);
     }
 
     public static double heatThread(GuiScanResultsWorld.LagSource source, ProfileResult result){
@@ -36,7 +37,8 @@ public class Calculations {
     }
 
     public static double heatNF(long nanos, ProfileResult result) {
-        return Math.min(((double) nanos/(double) result.getTotalFrames() / (double) ClientConfig.GRADIENT_MAXED_OUT_AT_NANOSECONDS_FPS) * 100D, 100);
+        return Math.min(((double) nanos/(double) result.getTotalFrames() / (double) Config.CLIENT.GRADIENT_MAXED_OUT_AT_NANOSECONDS_FPS.get()) * 100D,
+                100);
     }
 
     public static String NFString(long nanos, long frames) {

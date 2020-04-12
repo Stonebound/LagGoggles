@@ -7,32 +7,37 @@ import cf.terminator.laggoggles.client.gui.KeyHandler;
 import cf.terminator.laggoggles.client.gui.LagOverlayGui;
 import cf.terminator.laggoggles.packet.CPacketRequestServerData;
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent;
-import org.lwjgl.input.Keyboard;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import org.lwjgl.glfw.GLFW;
 
-import static cf.terminator.laggoggles.client.ServerDataPacketHandler.RECEIVED_RESULT;
+import static cf.terminator.laggoggles.packet.SPacketServerData.RECEIVED_RESULT;
 import static cf.terminator.laggoggles.profiler.ProfileManager.LAST_PROFILE_RESULT;
 
-public class ClientProxy extends CommonProxy {
+public class ClientProxy {
+    public static void addListeners(IEventBus modEventBus) {
+        DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> {
+            modEventBus.addListener(ClientProxy::clientSetup);
+        });
+    }
 
-    @Override
-    public void postinit(FMLPostInitializationEvent e){
-        super.postinit(e);
-        ClientRegistry.registerKeyBinding(new KeyHandler("Profile GUI", Keyboard.KEY_INSERT, Main.MODID, new KeyHandler.CallBack() {
+    public static void clientSetup(FMLClientSetupEvent e){
+        ClientRegistry.registerKeyBinding(new KeyHandler("Profile GUI", GLFW.GLFW_KEY_INSERT, Main.MODID, new KeyHandler.CallBack() {
             @Override
             public void onPress() {
-                Minecraft.getMinecraft().displayGuiScreen(new GuiProfile());
+                Minecraft.getInstance().displayGuiScreen(new GuiProfile());
             }
         }));
 
         MinecraftForge.EVENT_BUS.register(new Object(){
             @SubscribeEvent
-            public void onLogin(FMLNetworkEvent.ClientConnectedToServerEvent e){
+            public void onLogin(ClientConnectedToServerEvent e){
                 RECEIVED_RESULT = false;
                 LagOverlayGui.destroy();
                 LAST_PROFILE_RESULT.set(null);
@@ -55,7 +60,7 @@ public class ClientProxy extends CommonProxy {
                 return;
             }
             if(count++ % 5 == 0){
-                NETWORK_WRAPPER.sendToServer(new CPacketRequestServerData());
+                CommonProxy.channel.sendToServer(new CPacketRequestServerData());
             }
         }
 

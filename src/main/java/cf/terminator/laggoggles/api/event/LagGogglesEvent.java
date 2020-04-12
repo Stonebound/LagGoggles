@@ -1,7 +1,7 @@
 package cf.terminator.laggoggles.api.event;
 
 import cf.terminator.laggoggles.profiler.ProfileResult;
-import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.eventbus.api.Event;
 
 public class LagGogglesEvent extends Event {
 

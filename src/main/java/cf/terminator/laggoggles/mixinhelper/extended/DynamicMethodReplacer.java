@@ -1,13 +1,8 @@
 package cf.terminator.laggoggles.mixinhelper.extended;
 
-import cf.terminator.laggoggles.mixinhelper.MixinConfigPlugin;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraft.client.Minecraft;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
-import org.spongepowered.asm.obfuscation.mapping.common.MappingField;
-import org.spongepowered.asm.obfuscation.mapping.common.MappingMethod;
-import org.spongepowered.asm.obfuscation.mapping.mcp.MappingFieldSrg;
-import org.spongepowered.tools.obfuscation.mapping.mcp.MappingProviderSrg;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -71,7 +66,7 @@ public class DynamicMethodReplacer implements Transformer {
                     }
                     if(nameRegexDeobf == null || nameRegexObf == null){
                         LOGGER.fatal("Invalid annotation found. (@DynamicMethodFinder.RedirectMethodCalls)");
-                        FMLCommonHandler.instance().exitJava(-1, true);
+                        Minecraft.getInstance().shutdown();
                     }else{
                         String nameRegex = isProductionEnvironment() ? nameRegexObf : nameRegexDeobf;
                         for (MethodNode changedMethod : findTargets(classNode, method, nameRegex,convertSelf, 1)){

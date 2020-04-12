@@ -3,7 +3,7 @@ package cf.terminator.laggoggles.api;
 import cf.terminator.laggoggles.profiler.ProfileManager;
 import cf.terminator.laggoggles.profiler.ProfileResult;
 import cf.terminator.laggoggles.profiler.ScanType;
-import net.minecraft.command.ICommandSender;
+import net.minecraft.command.CommandSource;
 
 import javax.annotation.Nullable;
 
@@ -41,7 +41,7 @@ public class Profiler {
      * @return the result, after the profiler is done.
      * @throws IllegalStateException if the profiler is already running, you should use {@link #canProfile()} before doing this
      */
-    public static ProfileResult runProfiler(int seconds, ScanType type, ICommandSender sender) throws IllegalStateException{
+    public static ProfileResult runProfiler(int seconds, ScanType type, CommandSource sender) throws IllegalStateException{
         return ProfileManager.runProfiler(seconds, type, sender);
     }
 

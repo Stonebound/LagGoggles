@@ -8,16 +8,15 @@ import cf.terminator.laggoggles.util.Graphical;
 import cf.terminator.laggoggles.util.RunInClientThread;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.entity.RenderManager;
+import net.minecraft.client.renderer.entity.EntityRendererManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LagOverlayGui {
 
     private final Minecraft MINECRAFT;
-    private final RenderManager RENDER_MANAGER;
+
+    private final EntityRendererManager RENDER_MANAGER;
     private final FontRenderer FONT_RENDERER;
     private final HashMap<BlockPos, String> BLOCKS_NANO = new HashMap<>();
     private final HashMap<BlockPos, Double> BLOCKS_HEAT = new HashMap<>();
@@ -79,7 +79,7 @@ public class LagOverlayGui {
     private LagOverlayGui(ProfileResult data){
         this.result = data;
         this.type = result.getType();
-        MINECRAFT = Minecraft.getMinecraft();
+        MINECRAFT = Minecraft.getInstance();
         RENDER_MANAGER = MINECRAFT.getRenderManager();
         FONT_RENDERER = MINECRAFT.fontRenderer;
         this.quickText = new QuickText(result.getType().getText(result));
@@ -106,7 +106,7 @@ public class LagOverlayGui {
         ENTITY_NANO.clear();
         ENTITY_HEAT.clear();
         CHUNKS.clear();
-        if(MINECRAFT.isGamePaused() || MINECRAFT.world == null || MINECRAFT.world.loadedEntityList == null){
+        if(MINECRAFT.isGamePaused() || MINECRAFT.world == null){
             return;
         }
         if(type == ScanType.WORLD){
@@ -116,11 +116,11 @@ public class LagOverlayGui {
                 switch (objectData.type){
                     case TILE_ENTITY:
                     case BLOCK:
-                        if((int) objectData.getValue(ObjectData.Entry.WORLD_ID) != MINECRAFT.world.provider.getDimension()){
+                        if((int) objectData.getValue(ObjectData.Entry.WORLD_ID) != MINECRAFT.world.getDimension().getType().getId()){
                             continue;
                         }
                         BlockPos pos = new BlockPos(objectData.getValue(ObjectData.Entry.BLOCK_POS_X), objectData.getValue(ObjectData.Entry.BLOCK_POS_Y), objectData.getValue(ObjectData.Entry.BLOCK_POS_Z));
-                        if(MINECRAFT.player.getDistanceSq(pos) > 36864){
+                        if(MINECRAFT.player.getDistanceSq(pos.getX(), pos.getY(), pos.getZ()) > 36864){
                             /* More than 12 chunks away, we don't draw. */
                             continue;
                         }
@@ -140,12 +140,12 @@ public class LagOverlayGui {
 
                         break;
                     case ENTITY:
-                        if((int) objectData.getValue(ObjectData.Entry.WORLD_ID) != MINECRAFT.world.provider.getDimension()){
+                        if((int) objectData.getValue(ObjectData.Entry.WORLD_ID) != MINECRAFT.world.getDimension().getType().getId()){
                             continue;
                         }
                         UUID entityID = objectData.getValue(ObjectData.Entry.ENTITY_UUID);
-                        for(Entity entity : new ArrayList<>(MINECRAFT.world.loadedEntityList)){
-                            if(entity.getPersistentID().equals(entityID)){
+                        for(Entity entity : MINECRAFT.world.getAllEntities()){
+                            if(entity.getUniqueID() == entityID){
                                 if(entity == MINECRAFT.player){
                                     continue;
                                 }
@@ -170,8 +170,8 @@ public class LagOverlayGui {
                         break;
                     case GUI_ENTITY:
                         UUID entityID = objectData.getValue(ObjectData.Entry.ENTITY_UUID);
-                        for (Entity entity : new ArrayList<>(MINECRAFT.world.loadedEntityList)) {
-                            if (entity.getPersistentID().equals(entityID)) {
+                        for (Entity entity : MINECRAFT.world.getAllEntities()) {
+                            if (entity.getUniqueID() == entityID) {
                                 if (entity == MINECRAFT.player) {
                                     continue;
                                 }
@@ -252,7 +252,7 @@ public class LagOverlayGui {
 
 
     @SubscribeEvent
-    public void onDraw(RenderWorldLastEvent event){
+    public void render(RenderWorldLastEvent event){
         float partialTicks = event.getPartialTicks();
         double pX = MINECRAFT.player.prevPosX + (MINECRAFT.player.posX - MINECRAFT.player.prevPosX) * partialTicks;
         double pY = MINECRAFT.player.prevPosY + (MINECRAFT.player.posY - MINECRAFT.player.prevPosY) * partialTicks;
@@ -298,7 +298,7 @@ public class LagOverlayGui {
         double pY;
         double pZ;
 
-        if(entity.isDead) {
+        if(!entity.isAlive()) {
             pX = entity.posX;
             pY = entity.posY;
             pZ = entity.posZ;
@@ -369,7 +369,7 @@ public class LagOverlayGui {
             double pYe;
             double pZe;
 
-            if(entity.isDead) {
+            if(!entity.isAlive()) {
                 pXe = entity.posX;
                 pYe = entity.posY;
                 pZe = entity.posZ;
@@ -392,7 +392,7 @@ public class LagOverlayGui {
 
             GL11.glBegin(GL11.GL_QUADS);
             String text = e.getValue();
-            if(entity.isDead){
+            if(!entity.isAlive()){
                 text = text + " (" + entity.getName() + ")";
             }
             int width_plus_2 = FONT_RENDERER.getStringWidth(text) + 2;

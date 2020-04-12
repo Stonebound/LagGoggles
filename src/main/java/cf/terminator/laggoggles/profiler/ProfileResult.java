@@ -3,10 +3,10 @@ package cf.terminator.laggoggles.profiler;
 import cf.terminator.laggoggles.client.gui.GuiScanResultsWorld;
 import cf.terminator.laggoggles.packet.ObjectData;
 import cf.terminator.laggoggles.packet.SPacketScanResult;
-import cf.terminator.laggoggles.util.Side;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraftforge.api.distmarker.Dist;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,14 +15,14 @@ import java.util.List;
 
 public class ProfileResult {
 
-    public static final ProfileResult EMPTY_RESULT = new ProfileResult(0,0,0,Side.UNKNOWN, ScanType.EMPTY);
+    public static final ProfileResult EMPTY_RESULT = new ProfileResult(0,0,0, Dist.DEDICATED_SERVER, ScanType.EMPTY);
 
     private final long startTime;
     private long endTime;
     private long totalTime;
     private long tickCount;
     private boolean isLocked = false;
-    private Side side;
+    private Dist side;
     private ScanType type;
     private long totalFrames = 0;
     private List<ObjectData> cachedList = null;
@@ -30,7 +30,7 @@ public class ProfileResult {
     private final ArrayList<ObjectData> OBJECT_DATA = new ArrayList<>();
     private List<GuiScanResultsWorld.LagSource> lagSources = null;
 
-    public ProfileResult(long startTime, long endTime, long tickCount, Side side, ScanType type){
+    public ProfileResult(long startTime, long endTime, long tickCount, Dist side, ScanType type){
         this.startTime = startTime;
         this.endTime = endTime;
         this.totalTime = endTime - startTime;
@@ -115,7 +115,7 @@ public class ProfileResult {
         return tickCount;
     }
 
-    public Side getSide(){
+    public Dist getSide(){
         return side;
     }
 
@@ -158,49 +158,33 @@ public class ProfileResult {
     }
 
     private SPacketScanResult getPacket(){
-        SPacketScanResult result = new SPacketScanResult();
-        result.endTime = this.endTime;
-        result.startTime = this.startTime;
-        result.tickCount = this.tickCount;
-        result.totalTime = this.totalTime;
-        result.side = this.side;
-        result.type = this.type;
-        result.totalFrames = this.totalFrames;
-        result.DATA.addAll(OBJECT_DATA);
+        SPacketScanResult result = new SPacketScanResult(this.endTime, this.startTime, this.tickCount, this.totalTime, this.side, this.type,
+                this.totalFrames, OBJECT_DATA);
         return result;
     }
 
 
-    public List<SPacketScanResult> createPackets(EntityPlayerMP player){
+    public List<SPacketScanResult> createPackets(ServerPlayerEntity player){
         ArrayList<SPacketScanResult> list = new ArrayList<>();
         ArrayList<ObjectData> data = new ArrayList<>(OBJECT_DATA);
-        player.sendMessage(new TextComponentString(TextFormatting.GRAY + "LagGoggles" + TextFormatting.WHITE + ": Generating the results for you..."));
+        player.sendMessage(new StringTextComponent(TextFormatting.GRAY + "LagGoggles" + TextFormatting.WHITE + ": Generating the results for you..."));
         long time = System.currentTimeMillis();
         double dataSize = data.size();
         while(data.size() > 0) {
-            SPacketScanResult packet = new SPacketScanResult();
-            packet.endTime = this.endTime;
-            packet.startTime = this.startTime;
-            packet.tickCount = this.tickCount;
-            packet.totalTime = this.totalTime;
-            packet.side = this.side;
-            packet.type = this.type;
-            packet.totalFrames = this.totalFrames;
-            packet.hasMore = true;
-
             ArrayList<ObjectData> sub = new ArrayList<>(data.subList(0,Math.min(50,data.size())));
             data.removeAll(sub);
-            packet.DATA.addAll(sub);
+            SPacketScanResult packet = new SPacketScanResult(this.endTime, this.startTime, this.tickCount, this.totalTime, this.side, this.type,
+                    this.totalFrames, sub, true);
             list.add(packet);
             if(time + 5000 < System.currentTimeMillis()){
                 time = System.currentTimeMillis();
-                player.sendMessage(new TextComponentString(TextFormatting.GRAY + "LagGoggles" + TextFormatting.WHITE + ": result is processing: " + Math.round(100 - (int) ((double) data.size()/dataSize * 100d)) + "%"));
+                player.sendMessage(new StringTextComponent(TextFormatting.GRAY + "LagGoggles" + TextFormatting.WHITE + ": result is processing: " + Math.round(100 - (int) ((double) data.size()/dataSize * 100d)) + "%"));
             }
         }
         if(list.size() >= 1) {
             list.get(list.size() - 1).hasMore = false;
         }
-        player.sendMessage(new TextComponentString(TextFormatting.GRAY + "LagGoggles" + TextFormatting.WHITE + ": Done!"));
+        player.sendMessage(new StringTextComponent(TextFormatting.GRAY + "LagGoggles" + TextFormatting.WHITE + ": Done!"));
         return list;
     }
 

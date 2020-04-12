@@ -2,6 +2,7 @@ package cf.terminator.laggoggles.client.gui;
 
 import cf.terminator.laggoggles.Main;
 import cf.terminator.laggoggles.packet.ObjectData;
+import cf.terminator.laggoggles.packet.SPacketServerData;
 import cf.terminator.laggoggles.profiler.ProfileResult;
 import cf.terminator.laggoggles.profiler.ScanType;
 import cf.terminator.laggoggles.profiler.TimingManager;
@@ -11,17 +12,16 @@ import cf.terminator.laggoggles.util.Perms;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraftforge.fml.client.GuiScrollingList;
+import net.minecraftforge.client.gui.ScrollPanel;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.TreeSet;
 
-import static cf.terminator.laggoggles.client.ServerDataPacketHandler.NON_OPS_CAN_SEE_EVENT_SUBSCRIBERS;
-import static cf.terminator.laggoggles.client.ServerDataPacketHandler.PERMISSION;
+import static cf.terminator.laggoggles.packet.SPacketServerData.NON_OPS_CAN_SEE_EVENT_SUBSCRIBERS;
 import static cf.terminator.laggoggles.util.Graphical.formatClassName;
 
-public class GuiEventTypes extends GuiScrollingList {
+public class GuiEventTypes extends ScrollPanel {
 
     final private FontRenderer FONTRENDERER;
     private static final int slotHeight = 24;
@@ -30,7 +30,7 @@ public class GuiEventTypes extends GuiScrollingList {
     private final ProfileResult result;
 
     public GuiEventTypes(Minecraft client, int width, int height, int top, int bottom, int left, int screenWidth, int screenHeight, ProfileResult result) {
-        super(client, width, height, top, bottom, left, slotHeight, screenWidth, screenHeight);
+        super(client, width, height, top, left);
         FONTRENDERER = client.fontRenderer;
         this.result = result;
 
@@ -57,8 +57,8 @@ public class GuiEventTypes extends GuiScrollingList {
 
 
     @Override
-    protected int getSize() {
-        if((NON_OPS_CAN_SEE_EVENT_SUBSCRIBERS == false && result.getType() == ScanType.WORLD ) && PERMISSION.ordinal() < Perms.Permission.FULL.ordinal()){
+    protected int getContentHeight() {
+        if((NON_OPS_CAN_SEE_EVENT_SUBSCRIBERS == false && result.getType() == ScanType.WORLD ) && SPacketServerData.PERMISSION.ordinal() < Perms.Permission.FULL.ordinal()){
             return 1;
         }else {
             return DATA.size();
@@ -66,18 +66,8 @@ public class GuiEventTypes extends GuiScrollingList {
     }
 
     @Override
-    protected void elementClicked(int slot, boolean doubleClick) {
-
-    }
-
-    @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks){
-        super.drawScreen(mouseX, mouseY, partialTicks);
-    }
-
-    @Override
-    protected boolean isSelected(int index) {
-        return false;
+    public void render(int mouseX, int mouseY, float partialTicks){
+        super.render(mouseX, mouseY, partialTicks);
     }
 
     @Override
@@ -86,18 +76,14 @@ public class GuiEventTypes extends GuiScrollingList {
 
     }
 
-    public void handleMouseInput() throws IOException {
-        super.handleMouseInput(left, top);
-    }
-
     public void displayCantSeeResults(int slotTop){
         drawString("You can't see these results because the", left + 10, slotTop, 0x4C4C4C);
         drawString("server has disabled it in their config.", left + 10, slotTop + 12, 0x4C4C4C);
     }
 
     @Override
-    protected void drawSlot(int slot, int entryRight, int slotTop, int slotBuffer, Tessellator tess) {
-        if((NON_OPS_CAN_SEE_EVENT_SUBSCRIBERS == false && result.getType() == ScanType.WORLD ) && PERMISSION.ordinal() < Perms.Permission.FULL.ordinal()){
+    protected void drawPanel(int entryRight, int relativeY, Tessellator tess, int mouseX, int mouseY) {
+        if((NON_OPS_CAN_SEE_EVENT_SUBSCRIBERS == false && result.getType() == ScanType.WORLD ) && SPacketServerData.PERMISSION.ordinal() < Perms.Permission.FULL.ordinal()){
             displayCantSeeResults(slotTop);
             return;
         }
